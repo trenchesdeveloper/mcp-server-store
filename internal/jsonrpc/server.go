@@ -1,9 +1,12 @@
 package jsonrpc
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -61,5 +64,50 @@ func (s *Server) HandleRequest(req *Request) *Response {
 		return NewErrorResponse(req.ID, NewInternalError("Internal error", err))
 	}
 	return NewSuccessResponse(req.ID, result)
+}
+
+func (s *Server) ServeStdio() error {
+	s.logger.Info("Starting JSON-RPC server over stdio")
+
+	reader := bufio.NewReader(os.Stdin)
+	writer := bufio.NewWriter(os.Stdout)
+
+	defer writer.Flush()
+
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				s.logger.Info("JSON-RPC server over stdio stopped")
+				return nil
+			}
+			s.logger.WithError(err).Error("Failed to read request")
+			return err
+		}
+		s.logger.WithField("request", string(line)).Debug("Read request")
+		var req Request
+		if err := json.Unmarshal(line, &req); err != nil {
+			s.logger.WithError(err).Error("Failed to unmarshal request")
+			res := NewErrorResponse(nil, NewParseError("Failed to unmarshal request", err))
+			s.writeResponse(writer, res)
+			continue
+		}
+		resp := s.HandleRequest(&req)
+		if !req.IsNotification() {
+			s.writeResponse(writer, resp)
+		}
+	}
+
+}
+
+func (s *Server) writeResponse(writer *bufio.Writer, resp *Response) {
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to marshal response")
+		return
+	}
+	writer.Write(respBytes)
+	writer.Write([]byte("\n"))
+	writer.Flush()
 }
 
