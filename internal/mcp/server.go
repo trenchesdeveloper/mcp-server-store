@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/sirupsen/logrus"
+	"github.com/trenchesdeveloper/mcp-server-store/internal/client"
 	"github.com/trenchesdeveloper/mcp-server-store/internal/jsonrpc"
 )
 
@@ -17,6 +18,7 @@ type Server struct {
 	serverInfo   ClientInfo
 	instructions string
 	capabilities ServerCapabilities
+	httpClient   *client.RestClient
 }
 
 // ServerOption is a functional option for configuring the MCP Server.
@@ -26,6 +28,13 @@ type ServerOption func(*Server)
 func WithInstructions(instructions string) ServerOption {
 	return func(s *Server) {
 		s.instructions = instructions
+	}
+}
+
+// WithHTTPClient sets the HTTP client used by tools to call the ecommerce API.
+func WithHTTPClient(httpClient *client.RestClient) ServerOption {
+	return func(s *Server) {
+		s.httpClient = httpClient
 	}
 }
 
@@ -67,6 +76,17 @@ func (s *Server) RegisterPrompt(prompt Prompt, handler PromptHandler) {
 	s.registry.RegisterPrompt(prompt, handler)
 }
 
+// ListTools returns all registered tools.
+func (s *Server) ListTools() []Tool {
+	s.registry.mu.RLock()
+	defer s.registry.mu.RUnlock()
+	tools := make([]Tool, 0, len(s.registry.tools))
+	for _, tool := range s.registry.tools {
+		tools = append(tools, tool)
+	}
+	return tools
+}
+
 // ---- Handler registration ----
 
 // registerHandlers wires up all MCP protocol methods on the JSON-RPC server.
@@ -98,6 +118,9 @@ func (s *Server) registerHandlers() {
 
 	// Notifications (no response expected)
 	s.rpcServer.RegisterMethod(NotificationInitialized, s.handleInitializedNotification)
+
+	// Logging
+	s.rpcServer.RegisterMethod(MethodLoggingSetLevel, s.handleSetLogLevel)
 }
 
 // ---- Handler implementations ----
@@ -133,6 +156,36 @@ func (s *Server) handlePing(_ json.RawMessage) (interface{}, *jsonrpc.Error) {
 func (s *Server) handleInitializedNotification(_ json.RawMessage) (interface{}, *jsonrpc.Error) {
 	s.logger.Info("Client initialized successfully")
 	return nil, nil
+}
+
+// handleSetLogLevel handles the "logging/setLevel" request from the client.
+func (s *Server) handleSetLogLevel(params json.RawMessage) (interface{}, *jsonrpc.Error) {
+	var req SetLevelParams
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, jsonrpc.NewInvalidParamsError("Invalid logging params", err.Error())
+	}
+
+	// Map MCP logging levels to logrus levels
+	levelMap := map[LoggingLevel]logrus.Level{
+		LogLevelDebug:     logrus.DebugLevel,
+		LogLevelInfo:      logrus.InfoLevel,
+		LogLevelNotice:    logrus.InfoLevel,
+		LogLevelWarning:   logrus.WarnLevel,
+		LogLevelError:     logrus.ErrorLevel,
+		LogLevelCritical:  logrus.FatalLevel,
+		LogLevelAlert:     logrus.FatalLevel,
+		LogLevelEmergency: logrus.PanicLevel,
+	}
+
+	logrusLevel, ok := levelMap[req.Level]
+	if !ok {
+		return nil, jsonrpc.NewInvalidParamsError("Unknown log level", string(req.Level))
+	}
+
+	s.logger.SetLevel(logrusLevel)
+	s.logger.WithField("level", req.Level).Info("Log level updated")
+
+	return struct{}{}, nil
 }
 
 // ---- Serve ----

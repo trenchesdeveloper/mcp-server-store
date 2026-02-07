@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/trenchesdeveloper/mcp-server-store/configs"
+	"github.com/trenchesdeveloper/mcp-server-store/internal/client"
 	"github.com/trenchesdeveloper/mcp-server-store/internal/mcp"
 )
 
@@ -27,21 +28,22 @@ func main() {
 
 	logger.Info("Starting MCP Server...")
 
+	// Create HTTP client for the ecommerce API
+	httpClient := client.NewRestClient(cfg.APIURL, cfg.AuthToken, logger)
+
 	// Create the MCP server
 	server := mcp.NewServer(
 		"mcp-server-store",
 		"0.1.0",
 		logger,
 		mcp.WithInstructions("A store management MCP server."),
+		mcp.WithHTTPClient(httpClient),
 	)
 
-	// TODO: Register tools, resources, and prompts here
-	// e.g. server.RegisterTool(myTool, myHandler)
+	logger.WithField("tools", len(server.ListTools())).Info("Registered tools")
 
 	// Start serving over stdio
 	if err := server.ServeStdio(); err != nil {
 		logger.WithError(err).Fatal("Server exited with error")
 	}
-
-	_ = cfg // config available for future use
 }

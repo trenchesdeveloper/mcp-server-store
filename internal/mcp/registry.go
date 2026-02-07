@@ -115,7 +115,9 @@ func (r *Registry) RegisterHandlers(server *jsonrpc.Server) {
 // ---- Capability builder ----
 
 func (r *Registry) buildCapabilities() ServerCapabilities {
-	caps := ServerCapabilities{}
+	caps := ServerCapabilities{
+		Logging: &LoggingCapability{},
+	}
 
 	if len(r.tools) > 0 {
 		caps.Tools = &ToolCapability{ListChanged: false}
