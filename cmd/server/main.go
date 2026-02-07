@@ -61,6 +61,8 @@ func main() {
 	// Order tools
 	orderTools := orders.NewOrderToolSet(httpClient, logger)
 	server.RegisterTool(orderTools.CreateOrderTool(), orderTools.CreateOrderHandler())
+	server.RegisterTool(orderTools.ListOrdersTool(), orderTools.ListOrdersHandler())
+	server.RegisterTool(orderTools.CancelOrderTool(), orderTools.CancelOrderHandler())
 
 	logger.WithField("tools", len(server.ListTools())).Info("Registered tools")
 

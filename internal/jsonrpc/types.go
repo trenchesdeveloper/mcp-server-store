@@ -7,10 +7,10 @@ import (
 
 // JSON-RPC 2.0 Request
 type Request struct {
-	JSONRPC string      `json:"jsonrpc"` // Version of the JSON-RPC protocol
-	Method  string      `json:"method"` // Method to be invoked
+	JSONRPC string          `json:"jsonrpc"`          // Version of the JSON-RPC protocol
+	Method  string          `json:"method"`           // Method to be invoked
 	Params  json.RawMessage `json:"params,omitempty"` // Parameters to be passed to the method
-	ID      interface{} `json:"id,omitempty"` // Identifier of the request
+	ID      interface{}     `json:"id,omitempty"`     // Identifier of the request
 }
 
 // JSON-RPC 2.0 Response
@@ -18,7 +18,7 @@ type Response struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Result  interface{} `json:"result,omitempty"`
 	Error   *Error      `json:"error,omitempty"`
-	ID      interface{} `json:"id,omitempty"`
+	ID      interface{} `json:"id"`
 }
 
 // JSON-RPC 2.0 Error
@@ -27,7 +27,6 @@ type Error struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 }
-
 
 func (e *Error) Error() string {
 	return fmt.Sprintf("Code: %d, Message: %s, Data: %v", e.Code, e.Message, e.Data)
@@ -40,13 +39,13 @@ func (r *Request) IsNotification() bool {
 func (r *Request) Validate() error {
 	if r.JSONRPC != "2.0" {
 		return &Error{
-			Code: ErrorInvalidRequest,
+			Code:    ErrorInvalidRequest,
 			Message: "Invalid JSON-RPC version",
 		}
 	}
 	if r.Method == "" {
 		return &Error{
-			Code: ErrorInvalidRequest,
+			Code:    ErrorInvalidRequest,
 			Message: "Method is required",
 		}
 	}

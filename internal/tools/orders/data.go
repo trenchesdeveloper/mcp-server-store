@@ -12,3 +12,10 @@ type OrderResponse struct {
 	Data    Order  `json:"data"`
 	Error   string `json:"error"`
 }
+
+type ListOrdersResponse struct {
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	Data    []Order `json:"data"`
+	Error   string  `json:"error"`
+}
