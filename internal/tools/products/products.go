@@ -180,3 +180,75 @@ func (p *ProductToolSet) SearchHandler() mcp.ToolHandler {
 		}, nil
 	}
 }
+
+// ---- Product Details ----
+
+// GetDetailTool returns the tool definition for getting a single product by ID.
+func (p *ProductToolSet) GetDetailTool() mcp.Tool {
+	return mcp.Tool{
+		Name:        "get_product",
+		Description: "Gets detailed information about a specific product by its ID, including name, description, price, stock, category, and images.",
+		InputSchema: mcp.InputSchema{
+			Type: "object",
+			Properties: map[string]mcp.Property{
+				"id": {
+					Type:        "string",
+					Description: "The product ID",
+				},
+			},
+			Required: []string{"id"},
+		},
+	}
+}
+
+// GetDetailHandler returns a handler that fetches a product by ID.
+func (p *ProductToolSet) GetDetailHandler() mcp.ToolHandler {
+	return func(arguments map[string]interface{}) (*mcp.ToolCallResult, error) {
+		id, ok := arguments["id"].(string)
+		if !ok || id == "" {
+			return nil, fmt.Errorf("product id is required")
+		}
+
+		p.logger.WithField("id", id).Info("Getting product details")
+
+		body, err := p.httpClient.Get("/products/"+id, nil)
+		if err != nil {
+			p.logger.WithError(err).Error("Failed to get product details")
+			return nil, fmt.Errorf("failed to get product: %w", err)
+		}
+
+		var resp ProductDetailResponse
+		if err := json.Unmarshal(body, &resp); err != nil {
+			p.logger.WithError(err).Error("Failed to parse product response")
+			return nil, fmt.Errorf("failed to parse product response: %w", err)
+		}
+
+		p.logger.WithField("product", resp.Data.Name).Info("Product details retrieved")
+
+		var sb strings.Builder
+		fmt.Fprintf(&sb, "**%s** (ID: %d)\n", resp.Data.Name, resp.Data.ID)
+		fmt.Fprintf(&sb, "- SKU: %s\n", resp.Data.SKU)
+		fmt.Fprintf(&sb, "- Price: $%.2f\n", resp.Data.Price)
+		fmt.Fprintf(&sb, "- Stock: %d\n", resp.Data.Stock)
+		fmt.Fprintf(&sb, "- Category: %s\n", resp.Data.Category.Name)
+		fmt.Fprintf(&sb, "- Active: %v\n", resp.Data.IsActive)
+		fmt.Fprintf(&sb, "- Description: %s\n", resp.Data.Description)
+
+		if len(resp.Data.Images) > 0 {
+			fmt.Fprintf(&sb, "\nImages:\n")
+			for _, img := range resp.Data.Images {
+				fmt.Fprintf(&sb, "  - %s (%s)\n", img.URL, img.AltText)
+			}
+		}
+
+		return &mcp.ToolCallResult{
+			Content: []mcp.Content{
+				{
+					Type: "text",
+					Text: sb.String(),
+				},
+			},
+		}, nil
+	}
+}
+

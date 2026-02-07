@@ -49,6 +49,7 @@ func main() {
 	productTools := products.NewProductToolSet(httpClient, logger)
 	server.RegisterTool(productTools.ListTool(), productTools.ListHandler())
 	server.RegisterTool(productTools.SearchTool(), productTools.SearchHandler())
+	server.RegisterTool(productTools.GetDetailTool(), productTools.GetDetailHandler())
 
 	logger.WithField("tools", len(server.ListTools())).Info("Registered tools")
 
