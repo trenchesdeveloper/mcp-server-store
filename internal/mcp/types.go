@@ -1,7 +1,7 @@
 package mcp
 
 // MCP Protocol version
-const ProtocolVersion = "2024-11-05"
+const ProtocolVersion = "2025-11-25"
 
 // ---- Capability types ----
 
@@ -30,8 +30,8 @@ type LoggingCapability struct{}
 
 // ClientCapabilities describes what the MCP client supports.
 type ClientCapabilities struct {
-	Experimental    map[string]any    `json:"experimental,omitempty"`
-	Sampling *SamplingCapability `json:"sampling,omitempty"`
+	Experimental map[string]any      `json:"experimental,omitempty"`
+	Sampling     *SamplingCapability `json:"sampling,omitempty"`
 }
 
 type SamplingCapability struct{}
@@ -50,14 +50,14 @@ type ClientInfo struct {
 type InitializeRequest struct {
 	ProtocolVersion string             `json:"protocolVersion"`
 	Capabilities    ClientCapabilities `json:"capabilities"`
-	ClientInfo      ClientInfo     `json:"clientInfo"`
+	ClientInfo      ClientInfo         `json:"clientInfo"`
 }
 
 // InitializeResult is returned by the server in response to "initialize".
 type InitializeResult struct {
 	ProtocolVersion string             `json:"protocolVersion"`
 	Capabilities    ServerCapabilities `json:"capabilities"`
-	ServerInfo      ClientInfo     `json:"serverInfo"`
+	ServerInfo      ClientInfo         `json:"serverInfo"`
 	Instructions    string             `json:"instructions,omitempty"`
 }
 

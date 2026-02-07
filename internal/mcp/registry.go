@@ -9,7 +9,7 @@ import (
 	"github.com/trenchesdeveloper/mcp-server-store/internal/jsonrpc"
 )
 
-//e.g list Products, get Product by ID, create Product, update Product, delete Product
+// e.g list Products, get Product by ID, create Product, update Product, delete Product
 // ToolHandler is a function that executes a tool and returns the result.
 type ToolHandler func(arguments map[string]interface{}) (*ToolCallResult, error)
 
@@ -167,6 +167,8 @@ func (r *Registry) handleToolsList(_ json.RawMessage) (interface{}, *jsonrpc.Err
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
+	r.logger.WithField("count", len(r.tools)).Info("Listing tools")
+
 	tools := make([]Tool, 0, len(r.tools))
 	for _, tool := range r.tools {
 		tools = append(tools, tool)
@@ -178,14 +180,21 @@ func (r *Registry) handleToolsList(_ json.RawMessage) (interface{}, *jsonrpc.Err
 func (r *Registry) handleToolsCall(params json.RawMessage) (interface{}, *jsonrpc.Error) {
 	var req ToolCallParams
 	if err := json.Unmarshal(params, &req); err != nil {
+		r.logger.WithError(err).Error("Failed to parse tool call params")
 		return nil, jsonrpc.NewInvalidParamsError("Invalid tool call params", err.Error())
 	}
+
+	r.logger.WithFields(logrus.Fields{
+		"tool":      req.Name,
+		"arguments": req.Arguments,
+	}).Info("Calling tool")
 
 	r.mu.RLock()
 	handler, ok := r.toolHandlers[req.Name]
 	r.mu.RUnlock()
 
 	if !ok {
+		r.logger.WithField("tool", req.Name).Warn("Tool not found")
 		return nil, jsonrpc.NewInvalidParamsError(
 			fmt.Sprintf("Tool '%s' not found", req.Name), nil,
 		)
@@ -193,12 +202,18 @@ func (r *Registry) handleToolsCall(params json.RawMessage) (interface{}, *jsonrp
 
 	result, err := handler(req.Arguments)
 	if err != nil {
+		r.logger.WithFields(logrus.Fields{
+			"tool":  req.Name,
+			"error": err.Error(),
+		}).Error("Tool execution failed")
 		// Return the error as a tool result with isError=true, not a JSON-RPC error.
 		return &ToolCallResult{
 			Content: []Content{NewTextContent(err.Error())},
 			IsError: true,
 		}, nil
 	}
+
+	r.logger.WithField("tool", req.Name).Info("Tool executed successfully")
 
 	return result, nil
 }
