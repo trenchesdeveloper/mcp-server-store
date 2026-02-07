@@ -10,9 +10,14 @@ type Tool struct {
 }
 
 type InputSchema struct {
-	Type       string            `json:"type"`
-	Properties map[string]string `json:"properties"`
-	Required   []string          `json:"required,omitempty"`
+	Type       string              `json:"type"`
+	Properties map[string]Property `json:"properties,omitempty"`
+	Required   []string            `json:"required,omitempty"`
+}
+
+type Property struct {
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
 }
 
 // ToolListParams are sent by the client in a "tools/list" request.

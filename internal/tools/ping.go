@@ -10,8 +10,7 @@ func PingTool() mcp.Tool {
 		Name:        "ping",
 		Description: "A simple ping tool that returns pong.",
 		InputSchema: mcp.InputSchema{
-			Type:       "object",
-			Properties: map[string]string{},
+			Type: "object",
 		},
 	}
 }

@@ -1,7 +1,7 @@
 package mcp
 
 // MCP Protocol version
-const ProtocolVersion = "2025-11-25"
+const ProtocolVersion = "2024-11-05"
 
 // ---- Capability types ----
 

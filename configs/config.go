@@ -23,7 +23,7 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		APIURL: getEnv("API_URL", "http://localhost:8000/api/v1"),
+		APIURL: getEnv("API_URL", "http://localhost:8080/api/v1"),
 		AuthToken: authToken,
 		LogLevel: getEnv("LOG_LEVEL", "debug"),
 		Transport: getEnv("TRANSPORT", "stdio"), // Options: stdio, http
